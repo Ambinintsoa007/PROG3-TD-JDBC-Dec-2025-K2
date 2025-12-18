@@ -5,10 +5,8 @@ import lombok.*;
 import java.util.List;
 
 @Getter
-@ToString
 @EqualsAndHashCode
 @Setter
-@AllArgsConstructor
 
 public class Dish {
     private int id;
@@ -16,7 +14,24 @@ public class Dish {
     private DishTypeEnum type;
     private List<Ingredient> ingredient;
 
+    public Dish(int id, String nom, DishTypeEnum type, List<Ingredient> ingredient) {
+        this.id = id;
+        this.nom = nom;
+        this.type = type;
+        this.ingredient = ingredient;
+    }
+
     public double getDishPrice() {
         throw new RuntimeException("Not implemented yet");
+    }
+
+    @Override
+    public String toString() {
+        return "Dish{" +
+                "id=" + id +
+                ", nom='" + nom + '\'' +
+                ", type=" + type +
+                ", ingredient=" + ingredient +
+                '}';
     }
 }
