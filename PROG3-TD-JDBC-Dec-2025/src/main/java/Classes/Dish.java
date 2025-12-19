@@ -21,10 +21,6 @@ public class Dish {
         this.ingredient = ingredient;
     }
 
-    public double getDishPrice() {
-        throw new RuntimeException("Not implemented yet");
-    }
-
     @Override
     public String toString() {
         return "Dish{" +
@@ -33,5 +29,9 @@ public class Dish {
                 ", type=" + type +
                 ", ingredient=" + ingredient +
                 '}';
+    }
+
+    public double getDishPrice() {
+        throw new RuntimeException("Not implemented yet");
     }
 }
