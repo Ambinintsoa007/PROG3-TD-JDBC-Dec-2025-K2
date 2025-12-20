@@ -85,4 +85,59 @@ public class DataRetriever {
 
         return ingredients;
     }
+
+    public List<Ingredient> createIngredients(List<Ingredient> newIngredients) throws SQLException {
+        Connection connection = new DBConnection().getDBConnection();
+
+        try {
+            connection.setAutoCommit(false);
+
+            String checkQuery = "SELECT COUNT(*) FROM Ingredient WHERE id = ?";
+            String insertQuery = "INSERT INTO Ingredient (id, name, price, category, id_dish) VALUES (?, ?, ?, ?::ingredient_category, ?)";
+
+            PreparedStatement checkStmt = connection.prepareStatement(checkQuery);
+            PreparedStatement insertStmt = connection.prepareStatement(insertQuery);
+
+            List<Ingredient> createdIngredients = new ArrayList<>();
+
+            for (Ingredient ingredient : newIngredients) {
+                checkStmt.setInt(1, ingredient.getId());
+                ResultSet rs = checkStmt.executeQuery();
+                rs.next();
+                int count = rs.getInt(1);
+                rs.close();
+
+                if (count > 0) {
+                    throw new RuntimeException("Ingredient avec id " + ingredient.getId() + " existe déjà");
+                }
+
+                insertStmt.setInt(1, ingredient.getId());
+                insertStmt.setString(2, ingredient.getName());
+                insertStmt.setDouble(3, ingredient.getPrice());
+                insertStmt.setString(4, ingredient.getCategory().name());
+
+                if (ingredient.getDish() != null) {
+                    insertStmt.setInt(5, ingredient.getDish().getId());
+                } else {
+                    insertStmt.setNull(5, java.sql.Types.INTEGER);
+                }
+
+                insertStmt.executeUpdate();
+                createdIngredients.add(ingredient);
+            }
+
+            connection.commit();
+
+            checkStmt.close();
+            insertStmt.close();
+            connection.close();
+
+            return createdIngredients;
+
+        } catch (Exception e) {
+            connection.rollback();
+            connection.close();
+            throw new RuntimeException("Erreur lors de la création: " + e.getMessage());
+        }
+    }
 }
