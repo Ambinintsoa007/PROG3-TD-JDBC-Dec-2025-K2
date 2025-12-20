@@ -54,4 +54,35 @@ public class DataRetriever {
 
         return new Dish(dishId, dishName, dishType, ingredients);
     }
+
+    public List<Ingredient> findIngredients(int page, int size) throws SQLException {
+        String query = "SELECT id, name, price, category, id_dish FROM Ingredient ORDER BY id LIMIT ? OFFSET ?";
+
+        Connection connection = new DBConnection().getDBConnection();
+        PreparedStatement pstmt = connection.prepareStatement(query);
+
+        int offset = (page - 1) * size;
+        pstmt.setInt(1, size);
+        pstmt.setInt(2, offset);
+
+        ResultSet rs = pstmt.executeQuery();
+        List<Ingredient> ingredients = new ArrayList<>();
+
+        while (rs.next()) {
+            Ingredient ingredient = new Ingredient(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getDouble("price"),
+                    CategoryEnum.valueOf(rs.getString("category")),
+                    null
+            );
+            ingredients.add(ingredient);
+        }
+
+        rs.close();
+        pstmt.close();
+        connection.close();
+
+        return ingredients;
+    }
 }
