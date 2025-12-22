@@ -220,4 +220,53 @@ public class DataRetriever {
             throw new SQLException("Erreur lors de la sauvegarde: " + e.getMessage());
         }
     }
+
+    public List<Dish> findDishsByIngredientName(String ingredientName) throws SQLException {
+        String query = "SELECT DISTINCT d.id, d.name, d.dish_type " +
+                "FROM Dish d " +
+                "JOIN Ingredient i ON d.id = i.id_dish " +
+                "WHERE i.name LIKE ?";
+
+        Connection connection = new DBConnection().getDBConnection();
+        PreparedStatement stmt = connection.prepareStatement(query);
+        stmt.setString(1, "%" + ingredientName + "%");
+
+        ResultSet rs = stmt.executeQuery();
+        List<Dish> dishes = new ArrayList<>();
+
+        while (rs.next()) {
+            int dishId = rs.getInt("id");
+            String dishName = rs.getString("name");
+            DishTypeEnum dishType = DishTypeEnum.valueOf(rs.getString("dish_type"));
+
+            String ingredientsQuery = "SELECT * FROM Ingredient WHERE id_dish = ?";
+            PreparedStatement ingredientsStmt = connection.prepareStatement(ingredientsQuery);
+            ingredientsStmt.setInt(1, dishId);
+            ResultSet ingredientsRs = ingredientsStmt.executeQuery();
+
+            List<Ingredient> ingredients = new ArrayList<>();
+            while (ingredientsRs.next()) {
+                Ingredient ingredient = new Ingredient(
+                        ingredientsRs.getInt("id"),
+                        ingredientsRs.getString("name"),
+                        ingredientsRs.getDouble("price"),
+                        CategoryEnum.valueOf(ingredientsRs.getString("category")),
+                        null
+                );
+                ingredients.add(ingredient);
+            }
+
+            ingredientsRs.close();
+            ingredientsStmt.close();
+
+            Dish dish = new Dish(dishId, dishName, dishType, ingredients);
+            dishes.add(dish);
+        }
+
+        rs.close();
+        stmt.close();
+        connection.close();
+
+        return dishes;
+    }
 }
