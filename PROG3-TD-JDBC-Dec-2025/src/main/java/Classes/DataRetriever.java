@@ -140,4 +140,84 @@ public class DataRetriever {
             throw new RuntimeException("Erreur lors de la création: " + e.getMessage());
         }
     }
+
+    public Dish saveDish(Dish dishToSave) throws SQLException {
+        Connection conn = new DBConnection().getDBConnection();
+
+        try {
+            conn.setAutoCommit(false);
+
+            String checkQuery = "SELECT COUNT(*) FROM Dish WHERE id = ?";
+            String insertDishQuery = "INSERT INTO Dish (id, name, dish_type) VALUES (?, ?, ?::dish_type_enum)";
+            String updateDishQuery = "UPDATE Dish SET name = ?, dish_type = ?::dish_type_enum WHERE id = ?";
+            String updateIngredientsQuery = "UPDATE Ingredient SET id_dish = ? WHERE id = ?";
+            String dissociateQuery = "UPDATE Ingredient SET id_dish = NULL WHERE id_dish = ? AND id NOT IN (";
+
+            PreparedStatement checkStmt = conn.prepareStatement(checkQuery);
+            checkStmt.setInt(1, dishToSave.getId());
+            ResultSet rs = checkStmt.executeQuery();
+            rs.next();
+            int count = rs.getInt(1);
+            rs.close();
+            checkStmt.close();
+
+            if (count == 0) {
+                PreparedStatement insertStmt = conn.prepareStatement(insertDishQuery);
+                insertStmt.setInt(1, dishToSave.getId());
+                insertStmt.setString(2, dishToSave.getNom());
+                insertStmt.setString(3, dishToSave.getType().name());
+                insertStmt.executeUpdate();
+                insertStmt.close();
+            } else {
+                PreparedStatement updateStmt = conn.prepareStatement(updateDishQuery);
+                updateStmt.setString(1, dishToSave.getNom());
+                updateStmt.setString(2, dishToSave.getType().name());
+                updateStmt.setInt(3, dishToSave.getId());
+                updateStmt.executeUpdate();
+                updateStmt.close();
+            }
+
+            if (dishToSave.getIngredient() != null && !dishToSave.getIngredient().isEmpty()) {
+                PreparedStatement updateIngrStmt = conn.prepareStatement(updateIngredientsQuery);
+
+                StringBuilder dissociateBuilder = new StringBuilder(dissociateQuery);
+                for (int i = 0; i < dishToSave.getIngredient().size(); i++) {
+                    if (i > 0) dissociateBuilder.append(",");
+                    dissociateBuilder.append("?");
+                }
+                dissociateBuilder.append(")");
+
+                PreparedStatement dissociateStmt = conn.prepareStatement(dissociateBuilder.toString());
+                dissociateStmt.setInt(1, dishToSave.getId());
+
+                int index = 2;
+                for (Ingredient ingredient : dishToSave.getIngredient()) {
+                    updateIngrStmt.setInt(1, dishToSave.getId());
+                    updateIngrStmt.setInt(2, ingredient.getId());
+                    updateIngrStmt.executeUpdate();
+
+                    dissociateStmt.setInt(index++, ingredient.getId());
+                }
+
+                dissociateStmt.executeUpdate();
+                dissociateStmt.close();
+                updateIngrStmt.close();
+            } else {
+                PreparedStatement dissociateAllStmt = conn.prepareStatement("UPDATE Ingredient SET id_dish = NULL WHERE id_dish = ?");
+                dissociateAllStmt.setInt(1, dishToSave.getId());
+                dissociateAllStmt.executeUpdate();
+                dissociateAllStmt.close();
+            }
+
+            conn.commit();
+            conn.close();
+
+            return dishToSave;
+
+        } catch (Exception e) {
+            conn.rollback();
+            conn.close();
+            throw new SQLException("Erreur lors de la sauvegarde: " + e.getMessage());
+        }
+    }
 }
