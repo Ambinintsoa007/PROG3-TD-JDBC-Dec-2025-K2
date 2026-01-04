@@ -269,4 +269,74 @@ public class DataRetriever {
 
         return dishes;
     }
+
+    public List<Ingredient> findIngredientsByCriteria(String ingredientName, CategoryEnum category, String dishName, int page, int size) throws SQLException {
+        StringBuilder query = new StringBuilder("SELECT i.id, i.name, i.price, i.category, i.id_dish FROM Ingredient i ");
+        List<String> conditions = new ArrayList<>();
+
+        if (dishName != null && !dishName.isEmpty()) {
+            query.append("JOIN Dish d ON i.id_dish = d.id ");
+        }
+
+        query.append("WHERE 1=1 ");
+
+        if (ingredientName != null && !ingredientName.isEmpty()) {
+            conditions.add("i.name LIKE ?");
+        }
+
+        if (category != null) {
+            conditions.add("i.category = ?::ingredient_category");
+        }
+
+        if (dishName != null && !dishName.isEmpty()) {
+            conditions.add("d.name LIKE ?");
+        }
+
+        for (String condition : conditions) {
+            query.append("AND ").append(condition).append(" ");
+        }
+
+        query.append("ORDER BY i.id LIMIT ? OFFSET ?");
+
+        Connection connection = new DBConnection().getDBConnection();
+        PreparedStatement stmt = connection.prepareStatement(query.toString());
+
+        int paramtIndex = 1;
+
+        if (ingredientName != null && !ingredientName.isEmpty()) {
+            stmt.setString(paramtIndex++, "%" + ingredientName + "%");
+        }
+
+        if (category != null) {
+            stmt.setString(paramtIndex++, category.name());
+        }
+
+        if (dishName != null && !dishName.isEmpty()) {
+            stmt.setString(paramtIndex++, "%" + dishName + "%");
+        }
+
+        int offset = (page - 1) * size;
+        stmt.setInt(paramtIndex++, size);
+        stmt.setInt(paramtIndex, offset);
+
+        ResultSet rs = stmt.executeQuery();
+        List<Ingredient> ingredients = new ArrayList<>();
+
+        while (rs.next()) {
+            Ingredient ingredient = new Ingredient(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getDouble("price"),
+                    CategoryEnum.valueOf(rs.getString("category")),
+                    null
+            );
+            ingredients.add(ingredient);
+        }
+
+        rs.close();
+        stmt.close();
+        connection.close();
+
+        return ingredients;
+    }
 }
