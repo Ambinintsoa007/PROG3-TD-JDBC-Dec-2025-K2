@@ -21,7 +21,7 @@ public class DataRetriever {
             dishRs.close();
             dishStmt.close();
             conn.close();
-            return null;
+            throw new RuntimeException("plat avec id: "+ id+ "n'existe pas");
         }
 
         int dishId = dishRs.getInt("id");
