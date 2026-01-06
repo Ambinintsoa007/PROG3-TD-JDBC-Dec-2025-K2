@@ -1,0 +1,46 @@
+import Classes.DataRetriever;
+import Classes.Dish;
+import Classes.Ingredient;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class DataRetrieverTest {
+    @BeforeAll
+    public static void setup() {
+        System.setProperty("JDBC_URL", "jdbc:postgresql://localhost:5432/mini_dish_db");
+        System.setProperty("USERNAME", "mini_dish_db_manager");
+        System.setProperty("PASSWORD", "ton_mot_de_passe");
+    }
+
+    @Test
+    public void testFindDishById() throws SQLException {
+        DataRetriever retriever = new DataRetriever();
+
+        Dish dish = retriever.findDishById(1);
+
+        assertNotNull(dish);
+        assertEquals("Salade fraîche", dish.getNom());
+        assertEquals(2, dish.getIngredient().size());
+
+        List<String> ingredientName = dish.getIngredient().stream()
+                .map(Ingredient::getName)
+                .collect(Collectors.toList());
+
+        assertTrue(ingredientName.contains("Laitue"));
+        assertTrue(ingredientName.contains("Tomate"));
+    }
+
+    @Test
+    public void testFindDishByIdNotFound() {
+        DataRetriever retriever = new DataRetriever();
+
+        assertThrows(RuntimeException.class, () -> {
+            retriever.findDishById(999);
+        });
+    }
+}
