@@ -1,0 +1,11 @@
+# Fichiers IDE IntelliJ
+.idea/
+*.iml
+
+# Fichiers de build Maven
+target/
+*.class
+
+# Fichiers système
+.DS_Store
+Thumbs.db
