@@ -10,7 +10,7 @@ import java.util.List;
 public class DataRetriever {
     public Dish findDishById(Integer id) throws SQLException {
         String dishQuery = "SELECT id, name, dish_type FROM Dish WHERE id = ?";
-        String ingredientsQuery = "SELECT id, name, price, category, id_dish FROM Ingredient WHERE id_dish = ?";
+        String ingredientsQuery = "SELECT id, name, price, category, id_dish, required_quantity FROM Ingredient WHERE id_dish = ?";
 
         Connection conn = new DBConnection().getDBConnection();
         PreparedStatement dishStmt = conn.prepareStatement(dishQuery);
@@ -43,7 +43,8 @@ public class DataRetriever {
                     ingredientsRs.getString("name"),
                     ingredientsRs.getDouble("price"),
                     CategoryEnum.valueOf(ingredientsRs.getString("category")),
-                    null
+                    null,
+                    ingredientsRs.getObject("required_quantity") != null ? ingredientsRs.getDouble("required_quantity") : null
             );
             ingredients.add(ingredient);
         }
@@ -74,7 +75,8 @@ public class DataRetriever {
                     rs.getString("name"),
                     rs.getDouble("price"),
                     CategoryEnum.valueOf(rs.getString("category")),
-                    null
+                    null,
+                    rs.getObject("required_quantity") != null ? rs.getDouble("required_quantity") : null
             );
             ingredients.add(ingredient);
         }
@@ -93,7 +95,7 @@ public class DataRetriever {
             connection.setAutoCommit(false);
 
             String checkQuery = "SELECT COUNT(*) FROM Ingredient WHERE id = ?";
-            String insertQuery = "INSERT INTO Ingredient (id, name, price, category, id_dish) VALUES (?, ?, ?, ?::ingredient_category, ?)";
+            String insertQuery = "INSERT INTO Ingredient (id, name, price, category, id_dish, required_quantity) VALUES (?, ?, ?, ?::ingredient_category, ?, ?)";
 
             PreparedStatement checkStmt = connection.prepareStatement(checkQuery);
             PreparedStatement insertStmt = connection.prepareStatement(insertQuery);
@@ -120,6 +122,12 @@ public class DataRetriever {
                     insertStmt.setInt(5, ingredient.getDish().getId());
                 } else {
                     insertStmt.setNull(5, java.sql.Types.INTEGER);
+                }
+
+                if (ingredient.getRequiredQuantity() != null) {
+                    insertStmt.setDouble(6, ingredient.getRequiredQuantity());
+                } else {
+                    insertStmt.setNull(6, java.sql.Types.NUMERIC);
                 }
 
                 insertStmt.executeUpdate();
@@ -251,7 +259,8 @@ public class DataRetriever {
                         ingredientsRs.getString("name"),
                         ingredientsRs.getDouble("price"),
                         CategoryEnum.valueOf(ingredientsRs.getString("category")),
-                        null
+                        null,
+                        ingredientsRs.getObject("required_quantity") != null ? ingredientsRs.getDouble("required_quantity") : null
                 );
                 ingredients.add(ingredient);
             }
@@ -328,7 +337,8 @@ public class DataRetriever {
                     rs.getString("name"),
                     rs.getDouble("price"),
                     CategoryEnum.valueOf(rs.getString("category")),
-                    null
+                    null,
+                    rs.getObject("required_quantity") != null ? rs.getDouble("required_quantity") : null
             );
             ingredients.add(ingredient);
         }
