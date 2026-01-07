@@ -1,5 +1,4 @@
 package Classes;
-
 import lombok.*;
 
 import java.util.List;
@@ -31,7 +30,13 @@ public class Dish {
                 '}';
     }
 
-    public double getDishPrice() {
-        throw new RuntimeException("Not implemented yet");
+    public double getDishCost() {
+        double totalCost = 0;
+        if (this.ingredient != null) {
+            for (Ingredient ingredient : this.ingredient) {
+                totalCost += ingredient.getPrice();
+            }
+        }
+        return totalCost;
     }
 }
