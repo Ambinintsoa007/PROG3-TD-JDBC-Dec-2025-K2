@@ -30,13 +30,30 @@ public class Dish {
                 '}';
     }
 
-    public double getDishCost() {
+    /*public double getDishCost() {
         double totalCost = 0;
         if (this.ingredient != null) {
             for (Ingredient ingredient : this.ingredient) {
                 totalCost += ingredient.getPrice();
             }
         }
+        return totalCost;
+    }*/
+    public Double getDishCost() {
+        if (this.ingredient == null || this.ingredient.isEmpty()) {
+            return 0.0;
+        }
+
+        double totalCost = 0.0;
+
+        for (Ingredient ingredient : this.ingredient) {
+            if (ingredient.getRequiredQuantity() == null) {
+                throw new RuntimeException("Impossible de calculer le coût : la quantité nécessaire de l'ingrédient '"
+                        + ingredient.getName() + "' est inconnue");
+            }
+            totalCost += ingredient.getPrice() * ingredient.getRequiredQuantity();
+        }
+
         return totalCost;
     }
 }
