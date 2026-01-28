@@ -2,6 +2,7 @@ package Classes;
 
 import java.util.List;
 import java.util.Objects;
+import java.time.Instant;
 
 public class Ingredient {
     private Integer id;
@@ -80,6 +81,36 @@ public class Ingredient {
 
     public void setStockMovementList(List<StockMovement> stockMovementList) {
         this.stockMovementList = stockMovementList;
+    }
+
+    public StockValue getStockValueAt(Instant t) {
+        if (stockMovementList == null || stockMovementList.isEmpty()) {
+            StockValue stockValue = new StockValue();
+            stockValue.setQuantity(0.0);
+            stockValue.setUnit(UnitTypeEnum.KG);
+            return stockValue;
+        }
+
+        double totalQuantity = 0.0;
+
+        for (StockMovement movement : stockMovementList) {
+            // Ne considérer que les mouvements avant ou à l'instant t
+            if (movement.getCreationDatetime().isBefore(t) ||
+                    movement.getCreationDatetime().equals(t)) {
+
+                if (movement.getType() == MovementTypeEnum.IN) {
+                    totalQuantity += movement.getValue().getQuantity();
+                } else if (movement.getType() == MovementTypeEnum.OUT) {
+                    totalQuantity -= movement.getValue().getQuantity();
+                }
+            }
+        }
+
+        StockValue stockValue = new StockValue();
+        stockValue.setQuantity(totalQuantity);
+        stockValue.setUnit(UnitTypeEnum.KG);
+
+        return stockValue;
     }
 
     @Override
