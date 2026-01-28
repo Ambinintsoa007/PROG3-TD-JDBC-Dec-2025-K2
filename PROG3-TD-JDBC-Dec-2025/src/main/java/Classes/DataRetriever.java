@@ -412,4 +412,155 @@ public class DataRetriever {
             ps.executeQuery();
         }
     }
+
+    // ========== SAUVEGARDER UN INGREDIENT AVEC SES MOUVEMENTS ==========
+    Ingredient saveIngredient(Ingredient toSave) {
+        // SQL pour insérer ou mettre à jour l'ingrédient
+        String upsertIngredientSql = """
+            INSERT INTO ingredient (id, name, category, price)
+            VALUES (?, ?, ?::ingredient_category, ?)
+            ON CONFLICT (id) DO UPDATE
+            SET name = EXCLUDED.name,
+                category = EXCLUDED.category,
+                price = EXCLUDED.price
+            RETURNING id
+            """;
+
+        try (Connection conn = new DBConnection().getConnection()) {
+            conn.setAutoCommit(false);
+            Integer ingredientId;
+
+            // 1. Sauvegarder l'ingrédient
+            try (PreparedStatement ps = conn.prepareStatement(upsertIngredientSql)) {
+                if (toSave.getId() != null) {
+                    ps.setInt(1, toSave.getId());
+                } else {
+                    ps.setInt(1, getNextSerialValue(conn, "ingredient", "id"));
+                }
+                ps.setString(2, toSave.getName());
+                ps.setString(3, toSave.getCategory().name());
+                ps.setDouble(4, toSave.getPrice());
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    ingredientId = rs.getInt(1);
+                }
+            }
+
+            // 2. Sauvegarder les mouvements de stock liés
+            saveStockMovements(conn, ingredientId, toSave.getStockMovementList());
+
+            conn.commit();
+            return findIngredientById(ingredientId);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // ========== SAUVEGARDER LES MOUVEMENTS DE STOCK ==========
+    private void saveStockMovements(Connection conn, Integer ingredientId,
+                                    List<StockMovement> movements) throws SQLException {
+        if (movements == null || movements.isEmpty()) {
+            return;
+        }
+
+        // ON CONFLICT DO NOTHING = si l'id existe déjà, on ignore (pas de mise à jour)
+        String insertSql = """
+            INSERT INTO stockmovement (id, id_ingredient, quantity, type, unit, creation_datetime)
+            VALUES (?, ?, ?, ?::movement_type, ?::unit_type, ?)
+            ON CONFLICT (id) DO NOTHING
+            """;
+
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            for (StockMovement movement : movements) {
+                // Récupérer ou générer l'id
+                if (movement.getId() != null) {
+                    ps.setInt(1, movement.getId());
+                } else {
+                    ps.setInt(1, getNextSerialValue(conn, "stockmovement", "id"));
+                }
+                ps.setInt(2, ingredientId);
+                ps.setDouble(3, movement.getValue().getQuantity());
+                ps.setString(4, movement.getType().name());
+                ps.setString(5, movement.getValue().getUnit().name());
+                ps.setTimestamp(6, Timestamp.from(movement.getCreationDatetime()));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+    }
+
+    // ========== RECUPERER UN INGREDIENT PAR SON ID ==========
+    Ingredient findIngredientById(Integer id) {
+        DBConnection dbConnection = new DBConnection();
+        Connection connection = dbConnection.getConnection();
+
+        try {
+            String sql = "SELECT id, name, price, category FROM ingredient WHERE id = ?";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                Ingredient ingredient = new Ingredient();
+                ingredient.setId(rs.getInt("id"));
+                ingredient.setName(rs.getString("name"));
+                ingredient.setPrice(rs.getDouble("price"));
+                ingredient.setCategory(CategoryEnum.valueOf(rs.getString("category")));
+
+                // Charger les mouvements de stock de cet ingrédient
+                ingredient.setStockMovementList(findStockMovementsByIngredientId(id));
+
+                dbConnection.closeConnection(connection);
+                return ingredient;
+            }
+
+            dbConnection.closeConnection(connection);
+            throw new RuntimeException("Ingredient not found " + id);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // ========== RECUPERER LES MOUVEMENTS D'UN INGREDIENT ==========
+    private List<StockMovement> findStockMovementsByIngredientId(Integer ingredientId) {
+        DBConnection dbConnection = new DBConnection();
+        Connection connection = dbConnection.getConnection();
+        List<StockMovement> movements = new ArrayList<>();
+
+        try {
+            String sql = """
+                SELECT id, quantity, type, unit, creation_datetime
+                FROM stockmovement
+                WHERE id_ingredient = ?
+                ORDER BY creation_datetime
+                """;
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, ingredientId);
+            ResultSet rs = ps.executeQuery();
+
+            // Pour chaque mouvement trouvé
+            while (rs.next()) {
+                StockMovement movement = new StockMovement();
+                movement.setId(rs.getInt("id"));
+
+                // Créer le StockValue (quantité + unité)
+                StockValue value = new StockValue();
+                value.setQuantity(rs.getDouble("quantity"));
+                value.setUnit(UnitTypeEnum.valueOf(rs.getString("unit")));
+                movement.setValue(value);
+
+                movement.setType(MovementTypeEnum.valueOf(rs.getString("type")));
+                movement.setCreationDatetime(rs.getTimestamp("creation_datetime").toInstant());
+
+                movements.add(movement);
+            }
+
+            dbConnection.closeConnection(connection);
+            return movements;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
