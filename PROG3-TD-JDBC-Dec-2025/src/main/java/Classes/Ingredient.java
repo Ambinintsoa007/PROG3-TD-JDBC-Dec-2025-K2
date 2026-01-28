@@ -9,6 +9,7 @@ public class Ingredient {
     private Double price;
     private Double quantity;
     private UnitTypeEnum unit;
+    private List<StockMovement> stockMovementList;
 
     public Ingredient() {
     }
@@ -70,6 +71,14 @@ public class Ingredient {
 
     public void setUnit(UnitTypeEnum unit) {
         this.unit = unit;
+    }
+
+    public List<StockMovement> getStockMovementList() {
+        return stockMovementList;
+    }
+
+    public void setStockMovementList(List<StockMovement> stockMovementList) {
+        this.stockMovementList = stockMovementList;
     }
 
     @Override
