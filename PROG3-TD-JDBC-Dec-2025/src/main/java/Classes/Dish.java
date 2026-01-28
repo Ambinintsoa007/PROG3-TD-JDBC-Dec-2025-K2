@@ -60,7 +60,7 @@ public class Dish {
         this.ingredients = ingredients;
     }
 
-    // 4  Calcul du coût du plat avec les quantités
+    // 4 Calcul du coût du plat avec les quantités
     public Double getDishCost() {
         if (ingredients == null || ingredients.isEmpty()) {
             return 0.0;
@@ -74,6 +74,14 @@ public class Dish {
             totalCost += ingredient.getPrice() * ingredient.getQuantity();
         }
         return totalCost;
+    }
+
+    //  5: Calcul de la marge brute
+    public Double getGrossMargin() {
+        if (price == null) {
+            throw new IllegalStateException("Selling price is null for dish: " + name);
+        }
+        return price - getDishCost();
     }
 
     @Override
