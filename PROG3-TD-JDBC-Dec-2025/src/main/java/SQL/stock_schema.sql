@@ -2,7 +2,7 @@
 CREATE TYPE movement_type AS ENUM ('IN', 'OUT');
 
 -- Création de la table StockMovement
-CREATE TABLE stockmovement (
+CREATE TABLE stock_movement (
                                id SERIAL PRIMARY KEY,
                                id_ingredient INT NOT NULL,
                                quantity NUMERIC(10,2) NOT NULL,
@@ -12,8 +12,7 @@ CREATE TABLE stockmovement (
                                CONSTRAINT fk_ingredient FOREIGN KEY (id_ingredient) REFERENCES ingredient(id)
 );
 
--- Insertion des données StockMovement (d'après l'image 3)
-INSERT INTO stockmovement (id, id_ingredient, quantity, type, unit, creation_datetime) VALUES
+INSERT INTO stock_movement (id, id_ingredient, quantity, type, unit, creation_datetime) VALUES
     (1, 1, 5.0, 'IN', 'KG', '2024-01-05 08:00:00'),
     (2, 1, 0.2, 'OUT', 'KG', '2024-01-06 12:00:00'),
     (3, 2, 4.0, 'IN', 'KG', '2024-01-05 08:00:00'),
