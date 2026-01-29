@@ -4,7 +4,7 @@ create type unit_type as enum (
     'L'
 );
 
-create table dishIngredient (
+create table dish_ingredient (
     id SERIAL primary key,
     id_dish int,
     id_ingredient int,
@@ -16,7 +16,7 @@ alter table ingredient drop column id_dish;
 
 alter table ingredient drop column required_quantity;
 
-INSERT INTO dishIngredient (id_dish, id_ingredient, quantity_required, unit)
+INSERT INTO dish_ingredient (id_dish, id_ingredient, quantity_required, unit)
 VALUES
     (1, 1, 0.20, 'KG'),
     (1, 2, 0.15, 'KG'),
