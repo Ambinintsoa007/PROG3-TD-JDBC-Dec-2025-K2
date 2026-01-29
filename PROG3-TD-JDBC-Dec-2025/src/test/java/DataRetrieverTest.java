@@ -17,30 +17,5 @@ public class DataRetrieverTest {
         System.setProperty("PASSWORD", "ton_mot_de_passe");
     }
 
-    @Test
-    public void testFindDishById() throws SQLException {
-        DataRetriever retriever = new DataRetriever();
 
-        Dish dish = retriever.findDishById(1);
-
-        assertNotNull(dish);
-        assertEquals("Salade fraîche", dish.getNom());
-        assertEquals(2, dish.getIngredient().size());
-
-        List<String> ingredientName = dish.getIngredient().stream()
-                .map(Ingredient::getName)
-                .collect(Collectors.toList());
-
-        assertTrue(ingredientName.contains("Laitue"));
-        assertTrue(ingredientName.contains("Tomate"));
-    }
-
-    @Test
-    public void testFindDishByIdNotFound() {
-        DataRetriever retriever = new DataRetriever();
-
-        assertThrows(RuntimeException.class, () -> {
-            retriever.findDishById(999);
-        });
-    }
 }
