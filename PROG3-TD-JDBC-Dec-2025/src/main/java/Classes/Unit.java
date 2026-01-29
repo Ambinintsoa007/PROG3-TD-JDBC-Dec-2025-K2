@@ -1,6 +1,6 @@
 package Classes;
 
-public enum UnitTypeEnum {
+public enum Unit {
     PCS,
     KG,
     L
