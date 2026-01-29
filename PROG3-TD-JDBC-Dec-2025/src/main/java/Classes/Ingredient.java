@@ -1,30 +1,29 @@
 package Classes;
-
-import java.util.List;
-import java.util.Objects;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+
+import static java.time.Instant.now;
 
 public class Ingredient {
     private Integer id;
     private String name;
     private CategoryEnum category;
     private Double price;
-    private Double quantity;
-    private UnitTypeEnum unit;
     private List<StockMovement> stockMovementList;
 
     public Ingredient() {
     }
 
-    public Ingredient(Integer id) {
-        this.id = id;
-    }
-
-    public Ingredient(Integer id, String name, CategoryEnum category, Double price) {
+    public Ingredient(Integer id, String name, CategoryEnum category, Double price, List<StockMovement> stockMovementList) {
         this.id = id;
         this.name = name;
         this.category = category;
         this.price = price;
+        this.stockMovementList = stockMovementList;
     }
 
     public Integer getId() {
@@ -59,20 +58,11 @@ public class Ingredient {
         this.price = price;
     }
 
-    public Double getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Double quantity) {
-        this.quantity = quantity;
-    }
-
-    public UnitTypeEnum getUnit() {
-        return unit;
-    }
-
-    public void setUnit(UnitTypeEnum unit) {
-        this.unit = unit;
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Ingredient that = (Ingredient) o;
+        return Objects.equals(id, that.id) && Objects.equals(name, that.name) && category == that.category && Objects.equals(price, that.price);
     }
 
     public List<StockMovement> getStockMovementList() {
@@ -84,43 +74,30 @@ public class Ingredient {
     }
 
     public StockValue getStockValueAt(Instant t) {
-        if (stockMovementList == null || stockMovementList.isEmpty()) {
-            StockValue stockValue = new StockValue();
-            stockValue.setQuantity(0.0);
-            stockValue.setUnit(UnitTypeEnum.KG);
-            return stockValue;
+        if (stockMovementList == null) return null;
+        Map<Unit, List<StockMovement>> unitSet = stockMovementList.stream()
+                .collect(Collectors.groupingBy(stockMovement -> stockMovement.getValue().getUnit()));
+        if (unitSet.keySet().size() > 1) {
+            throw new RuntimeException("Multiple unit found and not handle for conversion");
         }
 
-        double totalQuantity = 0.0;
-
-        for (StockMovement movement : stockMovementList) {
-            // Ne considérer que les mouvements avant ou à l'instant t
-            if (movement.getCreationDatetime().isBefore(t) ||
-                    movement.getCreationDatetime().equals(t)) {
-
-                if (movement.getType() == MovementTypeEnum.IN) {
-                    totalQuantity += movement.getValue().getQuantity();
-                } else if (movement.getType() == MovementTypeEnum.OUT) {
-                    totalQuantity -= movement.getValue().getQuantity();
-                }
-            }
-        }
+        List<StockMovement> stockMovements = stockMovementList.stream()
+                .filter(stockMovement -> !stockMovement.getCreationDatetime().isAfter(t))
+                .toList();
+        double movementIn = stockMovements.stream()
+                .filter(stockMovement -> stockMovement.getType().equals(MovementTypeEnum.IN))
+                .flatMapToDouble(stockMovement -> DoubleStream.of(stockMovement.getValue().getQuantity()))
+                .sum();
+        double movementOut = stockMovements.stream()
+                .filter(stockMovement -> stockMovement.getType().equals(MovementTypeEnum.OUT))
+                .flatMapToDouble(stockMovement -> DoubleStream.of(stockMovement.getValue().getQuantity()))
+                .sum();
 
         StockValue stockValue = new StockValue();
-        stockValue.setQuantity(totalQuantity);
-        stockValue.setUnit(UnitTypeEnum.KG);
+        stockValue.setQuantity(movementIn - movementOut);
+        stockValue.setUnit(unitSet.keySet().stream().findFirst().get());
 
         return stockValue;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        Ingredient that = (Ingredient) o;
-        return Objects.equals(id, that.id) &&
-                Objects.equals(name, that.name) &&
-                category == that.category &&
-                Objects.equals(price, that.price);
     }
 
     @Override
@@ -135,8 +112,7 @@ public class Ingredient {
                 ", name='" + name + '\'' +
                 ", category=" + category +
                 ", price=" + price +
-                ", quantity=" + quantity +
-                ", unit=" + unit +
+                ", actualStock=" + getStockValueAt(now()) +
                 '}';
     }
 }
